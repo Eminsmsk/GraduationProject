@@ -13,14 +13,14 @@ class oneD_simulation():
 
         self.k = 9.8*(self.dt**2)/(2*(self.dx**2))
         
-        self.h = np.zeros(width,dtype=(np.float64))
-        self.b = np.zeros(width,dtype=(np.float64))
-        self.d = np.zeros(width,dtype=(np.float64))
+        self.h = np.zeros(width,dtype=(np.float32))
+        self.b = np.zeros(width,dtype=(np.float32))
+        self.d = np.zeros(width,dtype=(np.float32))
     
     
     def createEnv(self,x_axis_range):
 
-        self.x_axis = np.arange(-250,250)
+        self.x_axis = np.arange(-150,150)
 
         for i in range(len(self.x_axis)):
             self.b[i] = self.x_axis[i]**2/10000.0
@@ -31,7 +31,7 @@ class oneD_simulation():
         
     def calcE(self):
         
-        self.e = np.zeros(self.width,dtype=(np.float64))
+        self.e = np.zeros(self.width,dtype=(np.float32))
         
         for i in range(0,self.width):
             if(i == 0):
@@ -44,7 +44,7 @@ class oneD_simulation():
         return self.e
     
     def calF(self):
-        self.f = np.zeros(self.width-1,dtype=(np.float64))
+        self.f = np.zeros(self.width-1,dtype=(np.float32))
         
         for i in range(0,self.width-1):
            self.f[i] = self.k*(self.d[i] + self.d[i+1]) * -1.0
@@ -64,11 +64,11 @@ class oneD_simulation():
             A = diags(e) + diags(f,-1) + diags(f,+1)
          
             if ( n == 1):
-                self.y = self.h_0
-                prevY = self.y
+                self.y = self.h_0.copy()
+                prevY = self.y.copy()
             else:
                 self.y = (self.b + self.d) + (1 - self.tau) * (self.b + self.d - prevY)
-                prevY = self.y
+                prevY = self.y.copy()
                 
             self.h = spsolve(A,self.y)
             
@@ -94,27 +94,31 @@ class oneD_simulation():
             f = self.calF()
             
             if ( n == 1):
-                self.y = self.h_current
-                prevY = self.y
+                self.y = self.h_current.copy()
+                prevY = self.y.copy()
+                
             else:
                 self.y = (self.b + self.d) + (1 - self.tau) * (self.b + self.d - prevY)
-                prevY = self.y
-                
+                prevY = self.y.copy()
+                                
             for i in range(0,self.width):
-                if (i == self.width -1 ):
+                if i == 0:
+                    self.h[i] = (self.y[i] - f[i]*self.h_current[i+1]) / e[i]
+                elif (i == self.width -1 ):
                     self.h[i] = (self.y[i] - f[i-1]*self.h_current[i-1]) / e[i]
                 else:
                     self.h[i] = (self.y[i] - f[i-1]*self.h_current[i-1] - f[i]*self.h_current[i+1]) / e[i]
                 
         
             self.d = self.h-self.b
-            
+          
             for k in range(len(self.d)):
                 if(self.d[k] < 0 ):
                     self.d[k] = 0
             
+            
             self.h = self.b + self.d
-            self.h_current = self.h
+            self.h_current = self.h.copy()
                        
             plt.plot(self.x_axis*self.dx, self.b+self.d, color ="blue")
             plt.plot(self.x_axis*self.dx, self.b, color ="red")
@@ -125,10 +129,10 @@ class oneD_simulation():
 
 if __name__ == '__main__':
     
-    oneDsim = oneD_simulation(500,0.1,0.1,0.01)
+    oneDsim = oneD_simulation(300,0.1,0.1,0.01)
     
     oneDsim.createEnv(250)
     
-    oneDsim.simulateEq21()
-    #oneDsim.simulateEq45()
+    # oneDsim.simulateEq21()
+    oneDsim.simulateEq45()
     
