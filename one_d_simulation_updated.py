@@ -67,7 +67,7 @@ def simulateEq21(b, d, h, iter):
 
         A = diags(e) + diags(f, -1) + diags(f, +1)
 
-        y = ((h)) + (1 - tau) * (h - h_prev)
+        y = h + (1 - tau) * (h - h_prev)
 
         h_prev = copy.deepcopy(h)
 
@@ -104,7 +104,7 @@ def simulateEq45(b, d, h, iter):
 
         e = calcE(copy.deepcopy(d))
         f = calcF(copy.deepcopy(d))
-        y = ((h)) + (1 - tau) * (h - h_prev)
+        y = h + (1 - tau) * (h - h_prev)
 
         for i in range(0, len(b)):
             if i == 0:
@@ -141,5 +141,5 @@ if __name__ == '__main__':
 
     b, d, h = create_env(300)
     h = b + d
-    simulateEq45(b, d, h, 10000)
+    simulateEq21(b, d, h, 10000)
 
