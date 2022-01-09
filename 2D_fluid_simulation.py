@@ -22,24 +22,53 @@ def horizontal2D(b, d, h, b_height, n, h_prev):
 
 
 def vertical2D(b, d, h, b_width, n, h_prev):
-    b2 = b.T.copy()
-    d2 = d.T.copy()
-    h2 = h.T.copy()
-    h_prev2 = h_prev.T.copy()
+    b2 = b.T
+    d2 = d.T
+    h2 = h.T
+    h_prev2 = h_prev.T
 
     for i in range(b_width):
-            b2[i], d2[i], h2[i], h_prev2[i] = simulateEq21_2D(b2[i], d2[i], h2[i], n, h2[i])
-    b = b2.T.copy()
-    d = d2.T.copy()
-    h = h2.T.copy()
-    h_prev = h_prev2.T.copy()
+        b2[i], d2[i], h2[i], h_prev2[i] = simulateEq21_2D(b2[i], d2[i], h2[i], n, h2[i])
+    b = b2.T
+    d = d2.T
+    h = h2.T
+    h_prev = h_prev2.T
     return b, d, h, h_prev
+
+
+def normalize_d(d):
+
+    if d.sum() > 24500:
+        print(d.sum())
+        dif = d.sum() - 24500
+        # print(dif)
+        counter = 0
+        for r in range(d.shape[0]):
+            for c in range(d.shape[1]):
+                if d[r][c] > 0:
+                    counter = counter + 1
+
+
+        fark = (dif / (counter))
+        print('dif : ', dif)
+        print('fark : ', fark)
+        print('number : ', counter)
+        print('res : ', (counter) * fark)
+
+        for r in range(d.shape[0]):
+            for c in range(d.shape[1]):
+                if d[r][c] >= 0:
+                    d[r][c] = d[r][c] - fark
+                if d[r][c] < 0:
+                    d[r][c] = 0
+
+        print('üst sum : ', d.sum())
+
+    return d
 
 
 def simulateEq21_2D(one_d_b, one_d_d, one_d_h, n, one_d_h_prev):
     tau = 0.01
-    # one_d_h_prev = one_d_h.copy()
-    h_0 = one_d_b + one_d_d
 
     e = calcE(one_d_d)
     f = calcF(one_d_d)
@@ -51,7 +80,7 @@ def simulateEq21_2D(one_d_b, one_d_d, one_d_h, n, one_d_h_prev):
     else:
         y = one_d_h + (1 - tau) * (one_d_h - one_d_h_prev)
 
-    one_d_h_prev = one_d_h.copy()
+    one_d_h_prev = copy.deepcopy(one_d_h)
 
     one_d_h = spsolve(A, y)
     one_d_d = one_d_h - one_d_b
@@ -67,8 +96,6 @@ def simulateEq21_2D(one_d_b, one_d_d, one_d_h, n, one_d_h_prev):
 def calcE(one_d_data):
     dt = 0.1
     dx = 0.1
-    # dt = 0.5
-    # dx = 0.5
     k = 9.8 * (dt ** 2) / (2 * (dx ** 2))
     e = np.zeros(len(one_d_data), dtype=(np.float32))
 
@@ -84,7 +111,6 @@ def calcE(one_d_data):
 
 
 def calcF(one_d_data):
-    # print(len(one_d_data))
     dt = 0.1
     dx = 0.1
     k = 9.8 * (dt ** 2) / (2 * (dx ** 2))
@@ -101,14 +127,20 @@ def simulate2D(b, d, h, h_prev):
     b_width = b.shape[0]
     b_height = b.shape[1]
     for i in range(10000):
+        # d = normalize_d(d)
+        # print('sum : ', d.sum())
 
         b_temp = copy.deepcopy(b)
         d_temp = copy.deepcopy(d)
         h_temp = copy.deepcopy(h)
         h_prev_temp = copy.deepcopy(h_prev)
+        h_prev_temp_ver = copy.deepcopy(h_prev)
+
+
 
         b_temp, d_temp, h_temp, h_prev_temp = horizontal2D(b_temp, d_temp, h_temp, b_height, i, h_prev_temp)
-        b_temp, d_temp, h_temp, h_prev_temp = vertical2D(b_temp, d_temp, h_temp, b_width, i, h_prev_temp)
+
+        b_temp, d_temp, h_temp, h_prev_temp = vertical2D(b_temp, d_temp, h_temp, b_width, i, h_prev_temp_ver)
         h_prev = h
         h = h_temp
         b = b_temp
@@ -125,10 +157,6 @@ def simulate2D(b, d, h, h_prev):
         res[:, :, 0] = empthy
         res[:, :, 1] = empthy
         res[:, :, 2] = alpha
-        # print('a : ', alpha.max(), alpha.min())
-        # print(d.sum())
-        # cv2.imshow('res', res)
-        # cv2.waitKey(1)
         plt.figure(1)
         plt.imshow(res)
         plt.figure(2)
@@ -138,24 +166,26 @@ def simulate2D(b, d, h, h_prev):
 
 
 def createEnv(base):
-    b = base.copy()
+    b = base
     d = np.zeros((b.shape[0], b.shape[1]), dtype=(np.float32))
 
     for j in range(150, 199):
         for i in range(0, 50):
             d[j][i] = 10.0
-    h_prev = b.copy() + d.copy()
-    h = b.copy() + d.copy()
+    print('aaa : ', d.sum())
+    h_prev = b + d
+    h = b + d
     return b, d, h, h_prev
 
 
 if __name__ == '__main__':
     from PIL import Image
     import matplotlib.pyplot as plt
+
     a = np.array(Image.open('Dem.tif'))
     # plt.imshow(a)
     # plt.show()
-    b = a[600:799, 600:799].copy()
+    b = a[600:799, 600:799]
     print(b.shape)
     b, d, h, h_prev = createEnv(b)
     simulate2D(b, d, h, h_prev)
