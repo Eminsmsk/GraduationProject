@@ -1,138 +1,127 @@
 import numpy as np
+import copy
 import matplotlib.pyplot as plt
-from scipy.sparse import diags
+from scipy.sparse import diags, csr_matrix
 from scipy.sparse.linalg import spsolve
 
-class oneD_simulation():
-    
-    def __init__(self,width,dt,dx,tau):
-        self.width = width
-        self.dt = dt
-        self.dx = dx
-        self.tau = tau
 
-        self.k = 9.8*(self.dt**2)/(2*(self.dx**2))
-        
-        self.h = np.zeros(width,dtype=(np.float32))
-        self.b = np.zeros(width,dtype=(np.float32))
-        self.d = np.zeros(width,dtype=(np.float32))
-    
-    
-    def createEnv(self,x_axis_range):
+def calcE(one_d_data, k):
+    e = np.zeros(len(one_d_data), dtype=np.float64)
 
-        self.x_axis = np.arange(-150,150)
+    for i in range(0, len(one_d_data)):
+        if (i == 0):
+            e[i] = 1 + (k * (one_d_data[0] + one_d_data[1]))
+        elif (0 < i and i < len(one_d_data) - 1):
+            e[i] = 1 + (k * (one_d_data[i - 1] + 2 * one_d_data[i] + one_d_data[i + 1]))
+        elif (i == len(one_d_data) - 1):
+            e[i] = 1 + (k * (one_d_data[len(one_d_data) - 2] + one_d_data[len(one_d_data) - 1]))
 
-        for i in range(len(self.x_axis)):
-            self.b[i] = self.x_axis[i]**2/10000.0
-        
-        for j in range(30,50):
-            self.d[j] = 3.0
-        
-        
-    def calcE(self):
-        
-        self.e = np.zeros(self.width,dtype=(np.float32))
-        
-        for i in range(0,self.width):
-            if(i == 0):
-                self.e[i] = 1 + (self.k*(self.d[0]+self.d[1]))
-            elif(0<i and i<self.width-1):
-                self.e[i] = 1 + (self.k*(self.d[i-1] + 2*self.d[i] + self.d[i+1]))
-            elif ( i == self.width-1):
-                self.e[i] = 1 + (self.k*(self.d[self.width-2] + self.d[self.width-1]))
-        
-        return self.e
-    
-    def calF(self):
-        self.f = np.zeros(self.width-1,dtype=(np.float32))
-        
-        for i in range(0,self.width-1):
-           self.f[i] = self.k*(self.d[i] + self.d[i+1]) * -1.0
-        
-        return self.f
-    
-    
-    def simulateEq21 (self):
-        
-        self.h_0 = self.b + self.d
-        
-        for n in range ( 1, self.width):
-            
-            e = self.calcE()
-            f = self.calF()
-  
-            A = diags(e) + diags(f,-1) + diags(f,+1)
-         
-            if ( n == 1):
-                self.y = self.h_0.copy()
-                prevY = self.y.copy()
-            else:
-                self.y = (self.b + self.d) + (1 - self.tau) * (self.b + self.d - prevY)
-                prevY = self.y.copy()
-                
-            self.h = spsolve(A,self.y)
-            
-            self.d = self.h-self.b
-            
-            for k in range(len(self.d)):
-                if(self.d[k] < 0 ):
-                    self.d[k] = 0
-            
-            self.h = self.b + self.d
-            
-            
-            plt.plot(self.x_axis*self.dx, self.b+self.d, color ="blue")
-            plt.plot(self.x_axis*self.dx, self.b, color ="red")
+    return e
+
+
+def calcF(one_d_data, k):
+    f = np.zeros(len(one_d_data) - 1, dtype=np.float64)
+
+    for i in range(0, len(one_d_data) - 1):
+        f[i] = k * (one_d_data[i] + one_d_data[i + 1]) * -1.0
+
+    return f
+
+
+def create_env(width):
+    h = np.zeros(width, dtype=np.float64)
+    b = np.zeros(width, dtype=np.float64)
+    d = np.zeros(width, dtype=np.float64)
+
+    x_axis = np.arange(-150, 150)
+
+    for i in range(len(x_axis)):
+        b[i] = (x_axis[i] ** 2) / 10000.0 + max(- (x_axis[i] * 0.03) ** 2 + 1, 0)
+
+    for j in range(80, 100):
+        d[j] = 3
+
+    for j in range(220, 230):
+        d[j] = 4
+
+    return b, d, h
+
+
+def simulateEq21(b, d, h, max_iter, dt, dx, tau, k):
+    volume = sum(d)
+    h_prev = copy.deepcopy(h)
+
+    for n in range(2, max_iter):
+
+        e = calcE(d, k)
+        f = calcF(d, k)
+
+        A = diags(e) + diags(f, -1) + diags(f, +1)
+        A = csr_matrix(A)
+
+        y = h + (1 - tau) * (h - h_prev)
+
+        h_next = spsolve(A, y)
+        h_prev = h
+        h = h_next
+
+        d = h - b
+        d[d < 0] = 0
+
+        d = d / d.sum() * volume
+        h = b + d
+
+        if n % 4 == 0:
+            x_axis = np.arange(-150, 150)
+            plt.plot(x_axis * dx, h, color="blue")
+            plt.plot(x_axis * dx, b, color="red")
             plt.ylim(0, 8)
-            plt.show()
-            
-    def simulateEq45(self):
-        self.h_current = self.b + self.d
-        
-        for n in range ( 1, self.width ):
-            e = self.calcE()
-            f = self.calF()
-            
-            if ( n == 1):
-                self.y = self.h_current.copy()
-                prevY = self.y.copy()
-                
+
+            plt.pause(0.01)
+            plt.clf()
+
+    plt.show()
+
+
+def simulateEq45(b, d, h, max_iter, dt, dx, tau):
+    h_prev = copy.deepcopy(h)
+    h_next = np.zeros_like(h)
+    for n in range(2, max_iter):
+
+        e = calcE(d)
+        f = calcF(d)
+        y = h + (1 - tau) * (h - h_prev)
+
+        for i in range(0, len(b)):
+            if i == 0:
+                h_next[i] = (y[i] - f[i] * h[i + 1]) / e[i]
+            elif (i == len(b) - 1):
+                h_next[i] = (y[i] - f[i - 1] * h[i - 1]) / e[i]
             else:
-                self.y = (self.b + self.d) + (1 - self.tau) * (self.b + self.d - prevY)
-                prevY = self.y.copy()
-                                
-            for i in range(0,self.width):
-                if i == 0:
-                    self.h[i] = (self.y[i] - f[i]*self.h_current[i+1]) / e[i]
-                elif (i == self.width -1 ):
-                    self.h[i] = (self.y[i] - f[i-1]*self.h_current[i-1]) / e[i]
-                else:
-                    self.h[i] = (self.y[i] - f[i-1]*self.h_current[i-1] - f[i]*self.h_current[i+1]) / e[i]
-                
-        
-            self.d = self.h-self.b
-          
-            for k in range(len(self.d)):
-                if(self.d[k] < 0 ):
-                    self.d[k] = 0
-            
-            
-            self.h = self.b + self.d
-            self.h_current = self.h.copy()
-                       
-            plt.plot(self.x_axis*self.dx, self.b+self.d, color ="blue")
-            plt.plot(self.x_axis*self.dx, self.b, color ="red")
-            plt.ylim(0, 8)
-            plt.show()
-            
-    
+                h_next[i] = (y[i] - f[i - 1] * h[i - 1] - f[i] * h[i + 1]) / e[i]
+
+        d = h_next - b
+        d[d < 0] = 0
+
+        h_next = b + d
+        h_prev = copy.deepcopy(h)
+        h = copy.deepcopy(h_next)
+
+        x_axis = np.arange(-150, 150)
+        plt.plot(x_axis * dx, h, color="blue")
+        plt.plot(x_axis * dx, b, color="red")
+        plt.ylim(0, 8)
+
+        plt.pause(0.0001)
+        plt.clf()
+    plt.show()
+
 
 if __name__ == '__main__':
-    
-    oneDsim = oneD_simulation(300,0.1,0.1,0.01)
-    
-    oneDsim.createEnv(250)
-    
-    # oneDsim.simulateEq21()
-    oneDsim.simulateEq45()
-    
+    b, d, h = create_env(300)
+    h = b + d
+    tau = 0
+    dt = 0.01
+    dx = 0.01
+    k = 9.8 * (dt ** 2) / (2 * (dx ** 2))
+    simulateEq21(b, d, h, 10000, dt, dx, tau, k)
