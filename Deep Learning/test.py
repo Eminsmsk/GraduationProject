@@ -1,60 +1,59 @@
-import matplotlib.pyplot as plt
+import tensorflow as tf
+from sklearn.model_selection import train_test_split
+import dataset as D
+import data_loader as DL
+import model as M
+import os
 import numpy as np
-from osgeo import gdal
-from skimage import io, util
-path = 'ODTU_color/color.bip'
+import warnings
 
-# building_mask = io.imread('buildings.tiff').astype(np.uint8)
-# building_mask[building_mask > 0] = 1
-#
-# tree_mask = io.imread('trees.tiff').astype(np.uint8)
-# tree_mask[tree_mask > 0] = 1
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+warnings.filterwarnings("ignore")
 
+if __name__ == '__main__':
 
-dataset = gdal.Open(path)
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    if gpus:
+        try:
+            # Currently, memory growth needs to be the same across GPUs
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+            logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+        except RuntimeError as e:
+            # Memory growth must be set before GPUs have been initialized
+            print(e)
+    X_test, y_test = D.get_splitted_datas('test')
+    test_generator = DL.get_generator(X_test, y_test, 1)
 
-if dataset == None:
-    print("File cannot be opened")
+    X = []
+    y = []
 
-im_width = dataset.RasterXSize # The number of columns of the raster matrix
-im_height = dataset.RasterYSize # Number of rows of the raster matrix
-im_bands = dataset.RasterCount # number of bands
-
-print(im_width, im_height, im_bands)
-im_data = dataset.ReadAsArray(0, 0, im_width, im_height) # Get data
-im_data = im_data.transpose((1,2,0))
-
-import cv2
-
-red = im_data[:500,:500,0].astype('f4')
-green = im_data[:500,:500,1].astype('f4')
-
-ndvi_nan = np.divide(np.subtract(green, red), np.add(green, red))
-ndvi = np.nan_to_num(ndvi_nan, nan=-1, posinf=-1, neginf=-1)
-ndvi = cv2.normalize(ndvi, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-ndvi = ndvi.astype(np.uint8)
-
-print(ndvi.max(), ndvi.min())
-print(red.max(), red.min())
-print(green.max(), green.min())
-
-plt.figure(1)
-plt.imshow(ndvi, cmap='gray')
-
-plt.figure(2)
-plt.imshow(red, cmap='gray')
+    for i in test_generator:
+        X.append(i[0][0, :, :, :])
+        y.append(i[1][0, :, :])
+    X = np.array(X)
+    y = np.array(y)
+    print(X.shape, y.shape)
 
 
+    model = tf.keras.models.load_model('trained_model_v1/', compile =False)
+    y_pred = model.predict(X)
+    import matplotlib.pyplot as plt
+
+    row = 2
+    col = 2
+    fig1 = plt.figure(1, figsize=(200, 200))
+
+    for i in range(1, col * row + 1):
+        fig1.add_subplot(row, col, i)
+        fig1.set_size_inches(18.5, 10.5, forward=True)
+        xx = y_pred[i]
+        xx[xx >= 0.5] = 1
+        xx[xx < 0.5] = 0
+        xx = xx.reshape((256, 256))
+        res = np.hstack((xx, X[i,:,:,0], y[i]))
+        plt.imshow(res, cmap='gray')
 
 plt.show()
 
-
-
-# for i in ndvi.flatten():
-#     print(i)
-
-print(ndvi.shape)
-
-
-
-del dataset

@@ -50,8 +50,8 @@ class DataLoader(Sequence):
 
 
         self.data = self.data / 255.
-        self.data = self.data.reshape((len(self.data), 512, 512, 3))
-        self.mask = self.mask.reshape((len(self.mask), 512, 512))
+        self.data = self.data.reshape((len(self.data), 256, 256, 3))
+        self.mask = self.mask.reshape((len(self.mask), 256, 256))
         # print(self.mask.shape)
         return self.data, self.mask
 
@@ -61,7 +61,7 @@ def get_generator(X_train, y_train, batch_size):
 
 
 if __name__ == '__main__':
-    datas, masks = D.get_splitted_datas()
+    datas, masks = D.get_splitted_datas('train')
     dl = DataLoader(datas, masks, 8)
 
     for i in dl:

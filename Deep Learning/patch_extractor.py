@@ -21,9 +21,28 @@ def extract(color_data, ndsm_data, building_mask, patch_size):
                 sum_of_pixels_in_patch = np.sum(building_mask[i: i + patch_size, j: j + patch_size])
                 if sum_of_pixels_in_patch > object_thresh:
                     # write to file
-                    ndvi = calculate_ndvi(color_data[i: i + patch_size, j: j + patch_size,:])
-                    gray = cv2.cvtColor(color_data[i: i + patch_size, j: j + patch_size,:], cv2.COLOR_RGB2GRAY)
-                    ndsm = ndsm_data[i: i + patch_size, j: j + patch_size]
+
+                    # model 1
+                    # ndvi = calculate_ndvi(color_data[i: i + patch_size, j: j + patch_size,:])
+                    # gray = cv2.cvtColor(color_data[i: i + patch_size, j: j + patch_size,:], cv2.COLOR_RGB2GRAY)
+                    # ndsm = ndsm_data[i: i + patch_size, j: j + patch_size]
+
+                    # model 2
+                    # ndvi = color_data[i: i + patch_size, j: j + patch_size, 0]
+                    # gray = color_data[i: i + patch_size, j: j + patch_size, 1]
+                    # ndsm = color_data[i: i + patch_size, j: j + patch_size, 2]
+
+                    # model 3
+                    # ndvi = color_data[i: i + patch_size, j: j + patch_size, 0]
+                    # gray = color_data[i: i + patch_size, j: j + patch_size, 1]
+                    # ndsm = ndsm_data[i: i + patch_size, j: j + patch_size]
+
+                    # model 4
+                    ndvi = color_data[i: i + patch_size, j: j + patch_size, 0]
+                    gray = color_data[i: i + patch_size, j: j + patch_size, 1]
+                    ndsm = calculate_ndvi(color_data[i: i + patch_size, j: j + patch_size,:])
+
+
                     mask = building_mask[i: i + patch_size, j: j + patch_size]
                     mask = mask.astype(np.uint8)
                     patch = np.empty((patch_size, patch_size, 3))
@@ -34,7 +53,7 @@ def extract(color_data, ndsm_data, building_mask, patch_size):
                     f.write(path, counter, 'data', patch)
                     f.write(path, counter, 'mask', mask)
                     counter = counter + 1
-                    print(counter)
+                    # print(counter)
                     # kayıt işlemi
                     # print(sum_of_pixels_in_patch)
                     # print(i)
@@ -54,28 +73,28 @@ def extract(color_data, ndsm_data, building_mask, patch_size):
                     # plt.show()
                     # break
 
-                if sum_of_pixels_in_patch == 0:
-                    add_fp_prob = random.random()
-
-                    if add_fp_prob < 0.04:
-                        # add negative samples
-                        ndvi = calculate_ndvi(color_data[i: i + patch_size, j: j + patch_size, :])
-                        gray = cv2.cvtColor(color_data[i: i + patch_size, j: j + patch_size, :], cv2.COLOR_RGB2GRAY)
-                        ndsm = ndsm_data[i: i + patch_size, j: j + patch_size]
-                        mask = np.zeros((patch_size, patch_size))
-                        mask = mask.astype(np.uint8)
-                        patch = np.empty((patch_size, patch_size, 3))
-
-                        patch[:, :, 0] = gray
-                        patch[:, :, 1] = ndsm
-                        patch[:, :, 2] = ndvi
-                        patch = patch.astype(np.uint8)
-                        f.write(path, counter, 'data', patch)
-                        f.write(path, counter, 'mask', mask)
-                        counter = counter + 1
-                        print(counter)
-    print('c1 : ', c1)
-    print('c2 : ', c2)
+                # if sum_of_pixels_in_patch == 0:
+                #     add_fp_prob = random.random()
+                #
+                #     if add_fp_prob < 0.04:
+                #         # add negative samples
+                #         ndvi = calculate_ndvi(color_data[i: i + patch_size, j: j + patch_size, :])
+                #         gray = cv2.cvtColor(color_data[i: i + patch_size, j: j + patch_size, :], cv2.COLOR_RGB2GRAY)
+                #         ndsm = ndsm_data[i: i + patch_size, j: j + patch_size]
+                #         mask = np.zeros((patch_size, patch_size))
+                #         mask = mask.astype(np.uint8)
+                #         patch = np.empty((patch_size, patch_size, 3))
+                #
+                #         patch[:, :, 0] = gray
+                #         patch[:, :, 1] = ndsm
+                #         patch[:, :, 2] = ndvi
+                #         patch = patch.astype(np.uint8)
+                #         f.write(path, counter, 'data', patch)
+                #         f.write(path, counter, 'mask', mask)
+                #         counter = counter + 1
+                #         print(counter)
+    # print('c1 : ', c1)
+    # print('c2 : ', c2)
 
 def calculate_ndvi(color_data):
 

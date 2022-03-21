@@ -38,10 +38,8 @@ def read(path, patch_size, type, transpose, normilize, prun, cdtpye_uint8):
 
 
 def write(path, name, type, data):
-    if type == 'mask':
-        np.save(path + '/mask/'+ str(name), data)
-    else:
-        np.save(path + '/data/' + str(name), data)
+    np.save(path + '/' + type + '/' + str(name), data)
+
 
 
 def resize_with_cut(data, row, col, patch_size, type):

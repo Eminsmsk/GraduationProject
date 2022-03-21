@@ -24,9 +24,9 @@ class Dataset(Sequence):
         return len(self.data_file_names)
 
 
-def get_splitted_datas():
-    data_root = 'all_datas/data/*'
-    label_root = 'all_datas/mask/*'
+def get_splitted_datas(name):
+    data_root = 'dataset/' + name + '/data/*'
+    label_root = 'dataset/' + name + '/mask/*'
     dataset = Dataset(data_root, label_root)
     datas = [i[0] for i in dataset]
     masks = [i[1] for i in dataset]
@@ -35,6 +35,6 @@ def get_splitted_datas():
 
 
 # if __name__ == '__main__':
-#     datas, masks = get_splitted_datas()
+#     datas, masks = get_splitted_datas('train')
 #     for i, j in zip(datas, masks):
 #         print(i, j)

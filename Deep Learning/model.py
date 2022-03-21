@@ -13,7 +13,7 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import backend as K
 
 
-def unet(input_size=(512, 512, 3)):
+def unet(input_size=(256, 256, 3)):
     inputs = Input(input_size)
     conv1 = Conv2D(16, 3, activation='relu', padding='same', kernel_initializer='he_normal')(inputs)
     conv1 = Conv2D(16, 3, activation='relu', padding='same', kernel_initializer='he_normal')(conv1)
@@ -61,7 +61,7 @@ def unet(input_size=(512, 512, 3)):
 
     model = Model(inputs, conv10)
 
-    model.compile(optimizer=Adam(lr=1e-4), loss=my_loss, metrics=[my_coef])
+    model.compile(optimizer=Adam(lr=0.0003), loss=my_loss, metrics=[my_coef])
 
     # model.summary()
 

@@ -6,9 +6,9 @@ import model as M
 import os
 import numpy as np
 import warnings
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 warnings.filterwarnings("ignore")
-
 
 if __name__ == '__main__':
 
@@ -23,20 +23,22 @@ if __name__ == '__main__':
         except RuntimeError as e:
             # Memory growth must be set before GPUs have been initialized
             print(e)
+    print('Training Started...\n')
+    X_train, y_train = D.get_splitted_datas('train')
+    X_val, y_val = D.get_splitted_datas('validation')
+    X_test, y_test = D.get_splitted_datas('test')
+    train_generator = DL.get_generator(X_train, y_train, 16)
+    val_generator = DL.get_generator(X_val, y_val, 16)
+    test_generator = DL.get_generator(X_test, y_test, 1)
 
-    datas, masks = D.get_splitted_datas()
-
-    train_generator = DL.get_generator(datas, masks, 4)
-
-
-
-
-
-
-
+    early_stop = tf.keras.callbacks.EarlyStopping(
+        monitor='val_loss', min_delta=0, patience=10, verbose=1,
+        mode='auto', baseline=None, restore_best_weights=True
+    )
 
     model = M.unet()
-    model.fit(train_generator, epochs=500, verbose=1, shuffle=False)
-    # model.save('record9/')
+    model.fit(train_generator, validation_data=val_generator, epochs=500, verbose=1, shuffle=False,
+              callbacks=[early_stop])
+    model.save('trained_model_v4/')
 
-
+    print('Training Completed...\n')
